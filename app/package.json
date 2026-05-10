@@ -1,0 +1,12 @@
+{
+  "name": "nodejs-docker-jenkins-ec2-ci-cd",
+  "version": "1.0.0",
+  "description": "Node.js app deployed to EKS using Jenkins, Docker, and Terraform",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

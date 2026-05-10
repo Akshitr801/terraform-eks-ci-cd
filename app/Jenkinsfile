@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_REPO = 'akshitr801/nodejs-docker-jenkins-ec2-ci-cd'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKER_IMAGE = "${IMAGE_REPO}:${IMAGE_TAG}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh 'docker build -t $DOCKER_IMAGE .'
+                sh 'docker tag $DOCKER_IMAGE ${IMAGE_REPO}:latest'
+            }
+        }
+
+        stage('Docker Hub Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh 'docker push $DOCKER_IMAGE'
+                sh 'docker push ${IMAGE_REPO}:latest'
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh 'kubectl apply -f k8s/deployment.yaml'
+                sh 'kubectl apply -f k8s/service.yaml'
+                sh 'kubectl set image deployment/nodejs-app nodejs-app=$DOCKER_IMAGE'
+                sh 'kubectl rollout status deployment/nodejs-app'
+            }
+        }
+    }
+}
